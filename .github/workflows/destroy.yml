@@ -1,0 +1,61 @@
+name: "Destroy Terraform Infrastructure"
+
+on:
+  workflow_dispatch:
+
+env:
+  TerraformWorkingDirectory: "./src/infra"
+  StateStoreRGName: ${{ secrets.STATE_STORE_RGNAME }}
+  StorageAccountName: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+  StateStoreContainerName: ${{ secrets.STATE_STORAGE_CONTAINER_NAME }}
+  StateStoreFilename: ${{ secrets.STATE_STORE_FILENAME }}
+  DestroyTerraform: ${{ secrets.DESTROY_TERRAFORM }}
+  Location: ${{ secrets.LOCATION}}
+  CreateStateStore: ${{ secrets.CREATE_STATE_STORE}}
+
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  destroy:
+    name: "Terraform Destroy"
+    runs-on: ubuntu-latest
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4      
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3  
+
+      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        run: terraform init -backend-config=resource_group_name=${{ env.StateStoreRGName}} -backend-config=storage_account_name=${{ env.StorageAccountName }} -backend-config=container_name=${{ env.StateStoreContainerName }} -backend-config=key=${{ env.StateStoreFilename }}
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false -parallelism=20 -var-file="variables.tfvars"
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Terraform State File
+        shell: pwsh
+        run: |
+            $exists = az storage blob exists --account-name ${{ env.StorageAccountName }} --container-name tfstate --name ${{ env.StateStoreFilename }} --auth-mode login
+            if($exists)
+            {
+              az storage blob delete --account-name ${{ env.StorageAccountName }} --container-name tfstate --name ${{ env.StateStoreFilename }} --auth-mode login
+            }

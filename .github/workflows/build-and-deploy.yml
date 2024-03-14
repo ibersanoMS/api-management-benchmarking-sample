@@ -1,0 +1,293 @@
+name: "Deploy APIM Test Environment"
+
+on:
+  workflow_dispatch:
+  # push: 
+  #   branches: [main]
+
+env:
+  TerraformWorkingDirectory: "./src/infra"
+  StateStoreRGName: ${{ vars.STATE_STORE_RGNAME }}
+  StorageAccountName: ${{ vars.STORAGE_ACCOUNT_NAME }}
+  StateStoreContainerName: ${{ vars.STATE_STORAGE_CONTAINER_NAME }}
+  StateStoreFilename: "self-hosted-gateway.tfstate"
+  DestroyTerraform: ${{ vars.DESTROY_TERRAFORM }}
+  RedeployGateway: ${{ vars.REDEPLOY_GATEWAY }}
+  
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  deploy-terraform:
+    name: "Terraform Deploy"
+    runs-on: ubuntu-latest
+    outputs:
+      DestroyEnvironment: ${{ env.DestroyTerraform }}
+      clusterName: ${{ steps.create-resources.outputs.clusterName }}
+      resourceGroupName: ${{ steps.create-resources.outputs.resourceGroupName }}
+      apimInstanceName: ${{ steps.create-resources.outputs.apimInstanceName }}
+      apimGatewayName: ${{ steps.create-resources.outputs.gatewayName }}
+      redeployGateway: ${{ env.RedeployGateway }}
+      acrName: ${{ steps.create-resources.outputs.acrName }}
+      aksDnsPrefix: ${{ steps.create-resources.outputs.aksDnsPrefix }}
+      deployBackend: ${{ vars.DEPLOY_BACKEND }}
+      keyVaultName: ${{ steps.create-resources.outputs.keyVaultName }}
+      keyVaultId: ${{ steps.create-resources.outputs.keyVaultId }}
+      regenerateCert: ${{ vars.REGENERATE_CERT }}
+      location: ${{ steps.create-resources.outputs.location }}
+    
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4      
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3    
+        with: 
+          terraform_wrapper: false
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            
+      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        run: terraform init -backend-config=resource_group_name=${{ env.StateStoreRGName}} -backend-config=storage_account_name=${{ env.StorageAccountName }} -backend-config=container_name=${{ env.StateStoreContainerName }} -backend-config=key=${{ env.StateStoreFilename }}
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+        env:
+             ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+             ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+             ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+             ARM_USE_OIDC: true
+
+      # Generates an execution plan for Terraform
+      - name: Terraform Plan
+        run: terraform plan -out=tf_plan -var-file="variables.tfvars" -var "publisherEmail=${{ secrets.PUBLISHER_EMAIL }}"
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+        env:
+             ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+             ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+             ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+             ARM_USE_OIDC: true
+
+      - name: Terraform Apply
+        id: create-resources
+        run: |
+          terraform apply -auto-approve tf_plan
+          echo resourceGroupName=$(terraform output -raw resourceGroupName) >> $GITHUB_OUTPUT
+          echo clusterName=$(terraform output -raw clusterName) >> $GITHUB_OUTPUT
+          echo apimInstanceName=$(terraform output -raw apiManagementServiceName) >> $GITHUB_OUTPUT
+          echo gatewayName=$(terraform output -raw gatewayName) >> $GITHUB_OUTPUT
+          echo aksDnsPrefix=$(terraform output -raw aksDnsPrefix) >> $GITHUB_OUTPUT
+          echo keyVaultName=$(terraform output -raw keyVaultName) >> $GITHUB_OUTPUT
+          echo keyVaultId=$(terraform output -raw keyVaultId) >> $GITHUB_OUTPUT
+          echo location=$(terraform output -raw location) >> $GITHUB_OUTPUT
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+        env:
+             ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+             ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+             ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+             ARM_USE_OIDC: true
+      # - name: Enable Networking Observability on AKS
+      #   run: |
+      #     az extension add --name aks-preview
+      #     az extension update --name aks-preview
+      #     az aks update --resource-group --name --enable-network-observability
+  deploy-backend:
+    runs-on: 'ubuntu-latest'
+    needs: [deploy-terraform]
+    if: ${{ needs.deploy-terraform.outputs.deployBackend == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Set AKS Context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ needs.deploy-terraform.outputs.clusterName }}
+          resource-group: ${{ needs.deploy-terraform.outputs.resourceGroupName }}
+
+      - name: Deploy backend
+        run: |
+          kubectl apply -f ./src/manifests/backend.yaml
+  prepare-ssl:
+    runs-on: 'ubuntu-latest'
+    needs: [deploy-terraform]
+    if: ${{ needs.deploy-terraform.outputs.regenerateCert == 'true' }}
+    steps:
+      - name: Azure login 
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Generate Cert
+        run : |
+          openssl req -new -x509 -nodes -out aks-ingress-tls.crt -keyout aks-ingress-tls.key -subj "/CN=${{ needs.deploy-terraform.outputs.aksDnsPrefix }}.eastus.cloudapp.azure.com" -addext "subjectAltName=DNS:${{ needs.deploy-terraform.outputs.aksDnsPrefix }}.eastus.cloudapp.azure.com" -passout pass:
+          openssl pkcs12 -export -in aks-ingress-tls.crt -inkey aks-ingress-tls.key -out aks-ingress-tls.pfx -passout pass:
+      - name: Upload Cert
+        run: |
+          az keyvault certificate import --vault-name ${{ needs.deploy-terraform.outputs.keyVaultName }} --name aks-ingress-tls --file aks-ingress-tls.pfx
+          az aks approuting update -g ${{ needs.deploy-terraform.outputs.resourceGroupName }} -n ${{ needs.deploy-terraform.outputs.clusterName }} --enable-kv --attach-kv "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ needs.deploy-terraform.outputs.resourceGroupName }}/providers/Microsoft.KeyVault/vaults/${{ needs.deploy-terraform.outputs.keyVaultName }}"
+  deploy-gateway:
+    runs-on: 'ubuntu-latest'
+    needs: [deploy-terraform, deploy-backend, prepare-ssl]
+    if: ${{ needs.deploy-terraform.outputs.redeployGateway == 'true' && !failure()}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Set AKS Context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ needs.deploy-terraform.outputs.clusterName }}
+          resource-group: ${{ needs.deploy-terraform.outputs.resourceGroupName }}
+      
+      - name: Retrieve token for gateway and deploy gateway
+        id: get_token
+        run: |
+          TOKEN_ENDPOINT="https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/oauth2/token"
+          azureTokenRaw=$(curl -X POST $TOKEN_ENDPOINT -d "grant_type=client_credentials" -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" -d "resource=https://management.azure.com/")
+          azureAdToken=$(echo $azureTokenRaw | jq '.access_token' |tr -d \")
+          
+          url="https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ needs.deploy-terraform.outputs.resourceGroupName }}/providers/Microsoft.ApiManagement/service/${{ needs.deploy-terraform.outputs.apimInstanceName }}/gateways/${{ needs.deploy-terraform.outputs.apimGatewayName }}/generateToken?api-version=2022-08-01"
+
+          # Calculate the timestamp for one hour ahead (UTC)
+          day_ahead_utc=$(date -u --date="30 day" +"%Y-%m-%dT%H:%M:%S.%N")Z
+          echo $day_ahead_utc
+          
+          gatewayTokenRaw=$(curl -v -X POST -H "Authorization: Bearer $azureAdToken" -H "Content-Type: application/json" -d "{\"keyType\":\"primary\",\"expiry\":\"$day_ahead_utc\"}" $url)
+          
+          gatewayRegToken=$(echo $gatewayTokenRaw | jq '.value' |tr -d \")
+          
+          if [ $(kubectl get secret aks-token --output='name') = 'secret/aks-token' ]; then
+            kubectl delete secret aks-token
+          fi
+
+          kubectl create secret generic aks-token --from-literal=value="GatewayKey $gatewayRegToken" --type=Opaque 
+          kubectl delete --all pods --namespace=default
+
+          sed -i "s/<APIM Instance Name>/${{ needs.deploy-terraform.outputs.apimInstanceName }}/g" ./src/manifests/gateway.yaml
+          sed -i "s/<Hostname>/selfhostedgateway/g" ./src/manifests/ingress.yml
+          sed -i "s/<KeyVaultName>/${{ needs.deploy-terraform.outputs.keyVaultName }}/g" ./src/manifests/ingress.yml
+          sed -i "s/<Region>/${{ needs.deploy-terraform.outputs.location }}/g" ./src/manifests/ingress.yml
+          kubectl apply -f ./src/manifests/gateway.yaml
+          kubectl apply -f ./src/manifests/ingress.yml
+  deploy-api:
+    name: "Deploy API"
+    runs-on: ubuntu-latest
+    needs: [deploy-terraform, deploy-backend, deploy-gateway]
+    if: ${{ !failure() }}
+    outputs:
+      apimGatewayName: ${{ steps.create-resources.outputs.apimGatewayName }}
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3    
+          with: 
+            terraform_wrapper: false
+        - name: Azure Login
+          uses: azure/login@v1
+          with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+              
+        # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+        - name: Terraform Init
+          run: terraform init -backend-config=resource_group_name=${{ env.StateStoreRGName}} -backend-config=storage_account_name=${{ env.StorageAccountName }} -backend-config=container_name=${{ env.StateStoreContainerName }} -backend-config=key=api.tfstate
+          working-directory: "./src/infra/load-test-api"
+          env:
+              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+              ARM_USE_OIDC: true
+
+        # Generates an execution plan for Terraform
+        - name: Terraform Plan
+          run: terraform plan -out=tf_plan -var resourceGroupName=${{ needs.deploy-terraform.outputs.resourceGroupName }} -var apiManagementInstanceName=${{ needs.deploy-terraform.outputs.apimInstanceName }}
+          working-directory: "./src/infra/load-test-api"
+          env:
+              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+              ARM_USE_OIDC: true
+
+        - name: Terraform Apply
+          id: create-resources
+          run: |
+            terraform apply -auto-approve tf_plan
+            echo apimGatewayName=$(terraform output -raw apimGatewayName) >> $GITHUB_OUTPUT
+          working-directory: "./src/infra/load-test-api"
+          env:
+              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+              ARM_USE_OIDC: true 
+  destroy-terraform:
+    name: "Terraform Destroy"
+    runs-on: ubuntu-latest
+    if: ${{ needs.deploy-terraform.outputs.DestroyEnvironment == 'true' }}
+    needs: [deploy-terraform, deploy-gateway, deploy-api, deploy-backend]
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4      
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3  
+
+      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        run: terraform init -backend-config=resource_group_name=${{ env.StateStoreRGName}} -backend-config=storage_account_name=${{ env.StorageAccountName }} -backend-config=container_name=${{ env.StateStoreContainerName }} -backend-config=key=${{ env.StateStoreFilename }}
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false -parallelism=20 -var-file="variables.tfvars"
+        working-directory: ${{ env.TerraformWorkingDirectory }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Terraform State File
+        shell: pwsh
+        run: |
+            Try
+            {
+              $exists = az storage blob exists --account-name ${{ env.StorageAccountName }} --container-name ${{ env.StateStoreContainerName }} --name ${{ env.StateStoreFilename }} --auth-mode login
+            }
+            Catch
+            {
+              Write-output "No state file to delete"
+            }
