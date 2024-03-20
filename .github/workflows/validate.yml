@@ -10,7 +10,7 @@ on:
     
 permissions:
       id-token: write
-      contents: read
+      contents: write
 env:
   TerraformWorkingDirectory: "./src/infra"
   StateStoreRGName: ${{ vars.STATE_STORE_RGNAME }}
@@ -66,7 +66,6 @@ jobs:
         if: ${{ steps.fmt.outputs.format_output != '' }}
         run: | 
           GIT_BRANCH=$(echo ${GITHUB_HEAD_REF})
-          git remote set-url origin "https://${{github.actor}}:${{secrets.PAT}}@github.com/${{ github.repository }}"
           git config user.name "GitHub Actions"
           git config user.email ""
           git add .
