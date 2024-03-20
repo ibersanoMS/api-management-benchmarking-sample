@@ -10,7 +10,7 @@ variable "apimSkuName" {
 
 variable "publisherName" {
   type = string
-  default = "SelfHostedGatewayTesting"
+  default = "APIM Load Testing"
 }
 
 variable "publisherEmail" {
@@ -24,5 +24,5 @@ variable "apiName" {
 
 variable "resourceGroupName" {
   type = string
-  default = "APIM-SelfHostedGatewayTesting"
+  default = "APIM-LoadTesting"
 }
