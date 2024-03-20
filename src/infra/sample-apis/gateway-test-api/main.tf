@@ -1,44 +1,29 @@
-data "azurerm_api_management" "apiManagementInstance" {
-  resource_group_name = var.resourceGroupName
-  name = var.apiManagementInstanceName
-}
-
-data "azurerm_api_management_gateway" "gateway" {
-  api_management_id = data.azurerm_api_management.apiManagementInstance.id
-  name = "AKS"
-}
-
 resource "azurerm_api_management_api" "loadTestApi" {
-  name = "load-test-500-bytes"
-  display_name = "Load Test (500 bytes)"
-  resource_group_name = var.resourceGroupName
-  api_management_name = var.apiManagementInstanceName
+  name                  = "load-test-500-bytes"
+  display_name          = "Load Test (500 bytes)"
+  resource_group_name   = var.resourceGroupName
+  api_management_name   = var.apiManagementInstanceName
   subscription_required = false
-  protocols = ["https"]
-  revision = "1"
-}
-
-resource "azurerm_api_management_gateway_api" "associateLoadTestApi" {
-  gateway_id = data.azurerm_api_management_gateway.gateway.id
-  api_id = azurerm_api_management_api.loadTestApi.id
+  protocols             = ["https"]
+  revision              = "1"
 }
 
 resource "azurerm_api_management_api_operation" "loadTestApiOperation" {
   api_management_name = var.apiManagementInstanceName
   resource_group_name = var.resourceGroupName
-  api_name = azurerm_api_management_api.loadTestApi.name
-  display_name = "load-test-500-bytes"
-  method = "GET"
-  url_template = "/load-test"
-  operation_id = "load-test-500-bytes"
+  api_name            = azurerm_api_management_api.loadTestApi.name
+  display_name        = "load-test-500-bytes"
+  method              = "GET"
+  url_template        = "/load-test"
+  operation_id        = "load-test-500-bytes"
 }
 
 resource "azurerm_api_management_api_operation_policy" "loadTestApiOperationPolicy" {
-    api_management_name = var.apiManagementInstanceName
-    api_name = azurerm_api_management_api.loadTestApi.name
-    operation_id = azurerm_api_management_api_operation.loadTestApiOperation.operation_id
-    resource_group_name = var.resourceGroupName
-    xml_content = <<XML
+  api_management_name = var.apiManagementInstanceName
+  api_name            = azurerm_api_management_api.loadTestApi.name
+  operation_id        = azurerm_api_management_api_operation.loadTestApiOperation.operation_id
+  resource_group_name = var.resourceGroupName
+  xml_content         = <<XML
         <policies>
         <inbound>
             <return-response>
@@ -64,18 +49,18 @@ resource "azurerm_api_management_api_operation_policy" "loadTestApiOperationPoli
 
 
 resource "azurerm_api_management_product" "loadTestProduct" {
-    api_management_name = var.apiManagementInstanceName
-    resource_group_name = var.resourceGroupName
-    display_name = "Load Test"
-    description = "No Auth, No logging, 500 byte response body"
-    subscription_required = false
-    published = true
-    product_id = "load-test"
+  api_management_name   = var.apiManagementInstanceName
+  resource_group_name   = var.resourceGroupName
+  display_name          = "Load Test"
+  description           = "No Auth, No logging, 500 byte response body"
+  subscription_required = false
+  published             = true
+  product_id            = "load-test"
 }
 
 resource "azurerm_api_management_product_api" "loadTestProductApi" {
   api_management_name = var.apiManagementInstanceName
-  product_id = azurerm_api_management_product.loadTestProduct.product_id
-  api_name = azurerm_api_management_api.loadTestApi.name
+  product_id          = azurerm_api_management_product.loadTestProduct.product_id
+  api_name            = azurerm_api_management_api.loadTestApi.name
   resource_group_name = var.resourceGroupName
 }

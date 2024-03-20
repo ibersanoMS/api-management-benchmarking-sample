@@ -1,16 +1,16 @@
 variable "location" {
-  type = string
+  type    = string
   default = "eastus"
 }
 
 variable "apimSkuName" {
-  type = string
+  type    = string
   default = "Premium_1"
 }
 
 variable "publisherName" {
-  type = string
-  default = "SelfHostedGatewayTesting"
+  type    = string
+  default = "APIM Load Testing"
 }
 
 variable "publisherEmail" {
@@ -18,11 +18,11 @@ variable "publisherEmail" {
 }
 
 variable "apiName" {
-  type = string
+  type    = string
   default = "httpbin"
 }
 
 variable "resourceGroupName" {
-  type = string
-  default = "APIM-SelfHostedGatewayTesting"
+  type    = string
+  default = "APIM-LoadTesting"
 }
