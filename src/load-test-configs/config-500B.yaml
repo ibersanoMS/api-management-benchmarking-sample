@@ -1,0 +1,26 @@
+displayName: 500 Bytes
+testPlan: quick_test.jmx
+description: APIM 500 Bytes Baseline Test
+engineInstances: 2
+testId: <Test Id>
+testType: JMX
+splitAllCSVs: False
+failureCriteria: []
+env:
+- name: domain
+  value: loadtesting-g3wp2a.azure-api.net
+- name: protocol
+  value: https
+- name: throughput_per_engine
+  value: 250
+- name: max_response_time
+  value: 500
+- name: ramp_up_time
+  value: 60
+- name: duration_in_sec
+  value: 300
+- name: path
+  value: bytes/500
+autoStop:
+  errorPercentage: 90
+  timeWindow: 60

@@ -5,3 +5,11 @@ output "resourceGroupName" {
 output "apiManagementServiceName" {
   value = azurerm_api_management.loadTesting.name
 }
+
+output "loadTestName" {
+  value = azurerm_load_test.apimLoadTesting.name
+}
+
+output "apiUrl" {
+  value = module.api.apiUrl
+}

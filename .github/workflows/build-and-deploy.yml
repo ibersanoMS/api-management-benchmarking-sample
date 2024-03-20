@@ -25,6 +25,8 @@ jobs:
       DestroyEnvironment: ${{ env.DestroyTerraform }}
       resourceGroupName: ${{ steps.create-resources.outputs.resourceGroupName }}
       apimInstanceName: ${{ steps.create-resources.outputs.apimInstanceName }}
+      loadTestName: ${{ steps.create-resources.outputs.loadTestName }}
+      apiUrl: ${{ steps.create-resources.outputs.apiUrl }}
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
@@ -75,12 +77,61 @@ jobs:
           terraform apply -auto-approve tf_plan
           echo resourceGroupName=$(terraform output -raw resourceGroupName) >> $GITHUB_OUTPUT
           echo apimInstanceName=$(terraform output -raw apiManagementServiceName) >> $GITHUB_OUTPUT
+          echo loadTestName=$(terraform output -raw loadTestName) >> $GITHUB_OUTPUT
+          echo apiUrl=$(terraform output -raw apiUrl) >> $GITHUB_OUTPUT
         working-directory: ${{ env.TerraformWorkingDirectory }}
         env:
              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
              ARM_USE_OIDC: true
+  run-load-tests:
+    name: "Terraform Deploy"
+    runs-on: ubuntu-latest
+    needs: [deploy-infra]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4      
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          
+      - name: Replace API URL
+        run: |
+          sed -i "s|<API Url>|${{ needs.deploy-infra.outputs.apiUrl }}|g" /src/load-test-configs/*.yaml
+
+      - name: 'Run 500B test'
+        uses: azure/load-testing@v1
+        with:
+          loadTestConfigFile: '/src/load-test-configs/config-500B.yaml'
+          loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+          resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
+
+      - name: 'Run 1000B test'
+        uses: azure/load-testing@v1
+        with:
+          loadTestConfigFile: '/src/load-test-configs/config-1000B.yaml'
+          loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+          resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
+      - name: 'Run 1500B test'
+        uses: azure/load-testing@v1
+        with:
+          loadTestConfigFile: '/src/load-test-configs/config-1500B.yaml'
+          loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+          resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: loadTestResults
+          path: ${{ github.workspace }}/loadTest
 
   destroy-terraform:
     name: "Terraform Destroy"

@@ -1,0 +1,26 @@
+displayName: 1500 Bytes
+testPlan: quick_test.jmx
+description: APIM 1500 Bytes Baseline Test
+engineInstances: 2
+testId: 1500bytes
+testType: JMX
+splitAllCSVs: False
+failureCriteria: []
+env:
+- name: domain
+  value: <API Url>
+- name: protocol
+  value: https
+- name: throughput_per_engine
+  value: 250
+- name: max_response_time
+  value: 500
+- name: ramp_up_time
+  value: 60
+- name: duration_in_sec
+  value: 300
+- name: path
+  value: bytes/1500
+autoStop:
+  errorPercentage: 90
+  timeWindow: 60
