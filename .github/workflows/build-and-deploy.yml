@@ -12,7 +12,6 @@ env:
   StateStoreContainerName: ${{ vars.STATE_STORAGE_CONTAINER_NAME }}
   StateStoreFilename: "apim-load-testing.tfstate"
   DestroyTerraform: ${{ vars.DESTROY_TERRAFORM }}
-  RedeployGateway: ${{ vars.REDEPLOY_GATEWAY }}
   
 permissions:
       id-token: write
