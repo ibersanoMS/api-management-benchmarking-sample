@@ -9,11 +9,9 @@ variable "apiName" {
 }
 
 variable "resourceGroupName" {
-    default = "APIM-SelfHostedGatewayTesting"
     type = string
 }
 
 variable "apiManagementInstanceName" {
-    default = "shgTesting"
     type = string
 }

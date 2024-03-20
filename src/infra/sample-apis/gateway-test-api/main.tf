@@ -1,13 +1,3 @@
-data "azurerm_api_management" "apiManagementInstance" {
-  resource_group_name = var.resourceGroupName
-  name = var.apiManagementInstanceName
-}
-
-data "azurerm_api_management_gateway" "gateway" {
-  api_management_id = data.azurerm_api_management.apiManagementInstance.id
-  name = "AKS"
-}
-
 resource "azurerm_api_management_api" "loadTestApi" {
   name = "load-test-500-bytes"
   display_name = "Load Test (500 bytes)"
@@ -16,11 +6,6 @@ resource "azurerm_api_management_api" "loadTestApi" {
   subscription_required = false
   protocols = ["https"]
   revision = "1"
-}
-
-resource "azurerm_api_management_gateway_api" "associateLoadTestApi" {
-  gateway_id = data.azurerm_api_management_gateway.gateway.id
-  api_id = azurerm_api_management_api.loadTestApi.id
 }
 
 resource "azurerm_api_management_api_operation" "loadTestApiOperation" {
