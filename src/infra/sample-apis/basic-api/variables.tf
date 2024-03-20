@@ -1,17 +1,17 @@
 variable "location" {
-    default = "eastus"
-    type = string
+  default = "eastus"
+  type    = string
 }
 
 variable "apiName" {
-    default = "httpbin"
-    type = string
+  default = "httpbin"
+  type    = string
 }
 
 variable "resourceGroupName" {
-    type = string
+  type = string
 }
 
 variable "apiManagementInstanceName" {
-    type = string
+  type = string
 }

@@ -3,5 +3,5 @@ output "resourceGroupName" {
 }
 
 output "apiManagementServiceName" {
-    value = azurerm_api_management.loadTesting.name
+  value = azurerm_api_management.loadTesting.name
 }

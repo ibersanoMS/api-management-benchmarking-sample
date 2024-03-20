@@ -1,17 +1,17 @@
 resource "random_string" "uniqueString" {
-  length = 6
+  length  = 6
   special = false
-  upper = false
+  upper   = false
 }
 
 
 # App Service Plan for hosting the sample api
 resource "azurerm_service_plan" "appServicePlan" {
-  name = "apimLoadTesting-${random_string.uniqueString.result}"
+  name                = "apimLoadTesting-${random_string.uniqueString.result}"
   resource_group_name = var.resourceGroupName
-  location = var.location
-  os_type = "Linux"
-  sku_name = "B1"
+  location            = var.location
+  os_type             = "Linux"
+  sku_name            = "B1"
   tags = {
     environment = "Dev"
   }
@@ -19,14 +19,14 @@ resource "azurerm_service_plan" "appServicePlan" {
 
 # App Service for hosting the sample api
 resource "azurerm_linux_web_app" "api" {
-  name = "${var.apiName}-${random_string.uniqueString.result}"
+  name                = "${var.apiName}-${random_string.uniqueString.result}"
   resource_group_name = var.resourceGroupName
-  location = var.location
-  service_plan_id = azurerm_service_plan.appServicePlan.id
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.appServicePlan.id
 
-  site_config { 
+  site_config {
     application_stack {
-      docker_image_name = "Kong/httpbin:latest"
+      docker_image_name   = "Kong/httpbin:latest"
       docker_registry_url = "https://index.docker.io"
     }
   }
@@ -34,25 +34,25 @@ resource "azurerm_linux_web_app" "api" {
 
 # API for sample api in api management
 resource "azurerm_api_management_api" "api" {
-  name = var.apiName
-  resource_group_name =var.resourceGroupName
-  api_management_name = var.apiManagementInstanceName
+  name                  = var.apiName
+  resource_group_name   = var.resourceGroupName
+  api_management_name   = var.apiManagementInstanceName
   subscription_required = false
-  revision = "1"
-  display_name = var.apiName
-  protocols = ["https"]
+  revision              = "1"
+  display_name          = var.apiName
+  protocols             = ["https"]
 
   import {
     content_format = "swagger-link-json"
-    content_value = "https://raw.githubusercontent.com/Azure/api-management-samples/master/apis/httpbin.swagger.json"
+    content_value  = "https://raw.githubusercontent.com/Azure/api-management-samples/master/apis/httpbin.swagger.json"
   }
 }
 
 resource "azurerm_api_management_api_policy" "apiPolicy" {
   api_management_name = var.apiManagementInstanceName
-  api_name = azurerm_api_management_api.api.name
+  api_name            = azurerm_api_management_api.api.name
   resource_group_name = var.resourceGroupName
-  xml_content = <<XML
+  xml_content         = <<XML
     <policies>
       <inbound>
           <base />
@@ -73,19 +73,19 @@ resource "azurerm_api_management_api_policy" "apiPolicy" {
 
 # App insights for sample api
 resource "azurerm_log_analytics_workspace" "law" {
-    name = "apimLoadTesting-${random_string.uniqueString.result}"
-    location = var.location
-    resource_group_name = var.resourceGroupName
-    sku = "PerGB2018"
-    retention_in_days = 30
+  name                = "apimLoadTesting-${random_string.uniqueString.result}"
+  location            = var.location
+  resource_group_name = var.resourceGroupName
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
 }
 
 resource "azurerm_application_insights" "apimLoadTesting" {
-  name = "apimLoadTesting-${random_string.uniqueString.result}"
+  name                = "apimLoadTesting-${random_string.uniqueString.result}"
   resource_group_name = var.resourceGroupName
-  location = var.location
-  application_type = "web" 
-  workspace_id = azurerm_log_analytics_workspace.law.id
+  location            = var.location
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.law.id
 }
 
 resource "azurerm_api_management_logger" "apiLogger" {
