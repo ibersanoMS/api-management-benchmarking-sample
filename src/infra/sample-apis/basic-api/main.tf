@@ -56,7 +56,7 @@ resource "azurerm_api_management_api_policy" "apiPolicy" {
     <policies>
       <inbound>
           <base />
-          <set-backend-service base-url="https://${azurerm_linux_web_app.sampleApi.name}.azurewebsites.net/" />
+          <set-backend-service base-url="https://${azurerm_linux_web_app.api.name}.azurewebsites.net/" />
       </inbound>
       <backend>
           <base />
