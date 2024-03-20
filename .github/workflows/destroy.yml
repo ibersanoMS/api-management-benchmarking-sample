@@ -9,9 +9,8 @@ env:
   StorageAccountName: ${{ secrets.STORAGE_ACCOUNT_NAME }}
   StateStoreContainerName: ${{ secrets.STATE_STORAGE_CONTAINER_NAME }}
   StateStoreFilename: ${{ secrets.STATE_STORE_FILENAME }}
-  DestroyTerraform: ${{ secrets.DESTROY_TERRAFORM }}
-  Location: ${{ secrets.LOCATION}}
-  CreateStateStore: ${{ secrets.CREATE_STATE_STORE}}
+  DestroyTerraform: ${{ vars.DESTROY_TERRAFORM }}
+  Location: ${{ vars.LOCATION}}
 
 permissions:
       id-token: write
@@ -41,7 +40,7 @@ jobs:
         working-directory: ${{ env.TerraformWorkingDirectory }}
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve -input=false -parallelism=20 -var-file="variables.tfvars"
+        run: terraform destroy -auto-approve -input=false -parallelism=20 -var-file="variables.tfvars" -var "publisherEmail=${{ secrets.PUBLISHER_EMAIL }}"
         working-directory: ${{ env.TerraformWorkingDirectory }}
 
       - name: Azure Login
