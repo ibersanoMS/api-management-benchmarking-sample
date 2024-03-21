@@ -27,7 +27,7 @@ resource "azurerm_service_plan" "appServicePlan" {
   resource_group_name = var.resourceGroupName
   location            = var.location
   os_type             = "Linux"
-  sku_name            = "P1V3"
+  sku_name            = "P1v3"
   tags = {
     environment = "Dev"
   }
@@ -47,7 +47,7 @@ resource "azurerm_linux_web_app" "api" {
     }
     always_on = true
   }
-  
+
   app_settings = {
     APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.apimLoadTesting.instrumentation_key
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.apimLoadTesting.connection_string
