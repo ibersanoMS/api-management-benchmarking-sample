@@ -11,5 +11,5 @@ output "loadTestName" {
 }
 
 output "apiUrl" {
-  value = module.api.apiUrl
+  value = azurerm_api_management.loadTesting.gateway_url
 }
