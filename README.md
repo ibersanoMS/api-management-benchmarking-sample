@@ -1,16 +1,16 @@
-# Getting Started with Azure API Management Self-Hosted Gateway Testing using Terraform
+# Getting Started with Azure API Management Load Testing using Terraform
 
-Use this repository to create an environment to test API Management Self-Hosted Gateway using GitHub workflows for validation and deployment on Azure. 
+Use this repository to create an environment to perform basic load testing on an API Management instance either using GitHub workflows or manually deploying the Terraform setup. If you choose to manually deploy the Terraform code, you will need to go into the Portal and follow the instructions in the [blog post]() to run your load tests. 
 
-This template has basic workflows and scripts needed for the workflows in the ```.github/ ``` folder and basic Terraform files in the ``` src/ ``` folder.
+This repo has basic workflows in the ```.github/ ``` folder and Terraform deployment files in the ``` src/infra ``` folder. 
 
 These are the workflows contained in this repository:
 - ``` validate.yml ``` This workflow runs on a pull request to main. It formats and validates your Terraform and then commits the formatting changes back to your branch. 
-- ``` build-and-deploy.yml ``` This workflow runs on a push to main. It handles setting up and/or creating remote storage and deploying the Terraform code.
+- ``` build-and-deploy.yml ``` This workflow runs on a push to main or a manual dispatch. It handles deploying the Terraform code and running three basic load tests. 
 - ``` destroy.yml ``` This workflow runs on manual dispatch. It will delete your Terraform infrastructure on demand.
 - ``` dependabot.yml ``` Handles package management for GitHub Actions and Terraform versions. 
 
-The [Terraform code](/src/) included in this repository demonstrates basic file structure for a Terraform solution:
+The [Terraform code](/src/infra) included in this repository demonstrates basic file structure for a Terraform solution:
 - ``` main.tf ``` This file contains either resource definitions or references to [Terraform modules](/src/infra/modules/) to deploy.  
 - ``` providers.tf ``` This file contains the Terraform providers needed for the solution and the versions or features required for each. 
 - ``` variables.tf ``` This file contains definitions for variables used in the Terraform deployment. 
@@ -19,13 +19,18 @@ The [Terraform code](/src/) included in this repository demonstrates basic file 
 
 ## Environment Setup
 - API Management Service with a Premium SKU
-- App Service hosting a sample api
-- AKS cluster to host self-hosted gateway 
-- Application Insights for monitoring
-- Container Insights for monitoring self-hosted gateway memory and CPU usage
+- App Service hosting a sample api, [httpbin](httpbin.org)
+- Application Insights for monitoring APIM and App Service
 - Azure Load Test
 
-<Need diagram>
+## Load tests
+Three load tests are run the deployment workflow. This is intended to demonstrate that anytime you make a change to your environment with APIM, you need to re-run basic loads tests as you would unit tests to determine if that change had any effect on your environment. For the purposes of this example, we have demonstrated three basic load tests each run against 500 requests per second (RPS). 
+
+1. 500 byte payload
+2. 1,000 byte payload
+3. 1,500 byte payload
+
+These cases are meant to be a basic example of how you would want to configure your environment setup. Your use cases will differ based on number of users. throughput and other factors. 
 
 ## Credential Setup
 
@@ -41,31 +46,23 @@ Follow the steps below to setup:
 7. If you only want users to deploy resources during a pull request, select *Pull request* as the entity type. 
 8. If you only want users to deploy resources off a GitHub tag, select *Tag* as the entity type. 
 
-## Terraform Remote State Storage
-This repository configures Terraform remote state using an Azure Storage Account with a Blob container. You can also use [Terraform Cloud](https://learn.microsoft.com/en-us/shows/devops-lab/remote-state-management-with-terraform-cloud) to store state and you would need to make the following modifications to use that feature:
-
-1. In the [Setup Terraform] step in the [build and deploy workflow](.github/workflows/build-and-deploy.yml), replace the setup with the following:
-``` 
-- name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}    
-```
-2. You will need to add a new GitHub secret to your repository with the above name. The [API token](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens) will come from the [Terraform Cloud Portal](https://app.terraform.io/session). 
-
 ## GitHub Action Secrets Required
 
 Create the following secrets in your GitHub repository:
 - ``` AZURE_TENANT_ID  ``` 
 - ``` AZURE_SUBSCRIPTION_ID ```
 - ``` AZURE_CLIENT_ID ```
+- ```PUBLISHER_EMAIL``` (Email for setting up APIM instance)
+  
+## GitHub Action Variables Required
+
 - ``` STATE_STORE_RGNAME  ``` Existing resource group or name of one to be created for your remote state storage account
 - ``` STORAGE_ACCOUNT_NAME ``` Existing storage account or name of one to be created for your Terraform remote state to be stored
 - ``` STATE_STORAGE_CONTAINER_NAME ``` Existing container name or name of one to be created for your Terraform remote state to be stored
-- ``` STATE_STORE_FILENAME ``` Existing filename or new filename for your Terrform state file
+- ``` STATE_STORE_FILENAME ``` Existing filename or new filename for your Terraform state file
 - ``` DESTROY_TERRAFORM ``` True or False. Whether you want to destroy the Terraform architecture after it's been created through the workflow. 
-- ``` LOCATION ``` Location where you want the Azure resources and Terraform state storage to be deployed. 
-- ``` CREATE_STATE_STORE ``` True or False. Whether you want to create a new storage account for your remote state or if you have an existing one you'd like to use. 
+- ``` LOCATION ``` Location where you want the Azure resources and Terraform state storage to be deployed.   
+- 
 
 ## Development Process
 
