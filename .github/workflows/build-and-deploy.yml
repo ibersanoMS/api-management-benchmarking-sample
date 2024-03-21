@@ -112,20 +112,20 @@ jobs:
       - name: 'Run 500B test'
         uses: azure/load-testing@v1
         with:
-          loadTestConfigFile: '/src/load-test-configs/config-500B.yaml'
+          loadTestConfigFile: './src/load-test-configs/config-500B.yaml'
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
 
       - name: 'Run 1000B test'
         uses: azure/load-testing@v1
         with:
-          loadTestConfigFile: '/src/load-test-configs/config-1000B.yaml'
+          loadTestConfigFile: './src/load-test-configs/config-1000B.yaml'
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
       - name: 'Run 1500B test'
         uses: azure/load-testing@v1
         with:
-          loadTestConfigFile: '/src/load-test-configs/config-1500B.yaml'
+          loadTestConfigFile: './src/load-test-configs/config-1500B.yaml'
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
       - uses: actions/upload-artifact@v2
