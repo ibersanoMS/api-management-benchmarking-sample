@@ -8,7 +8,7 @@ splitAllCSVs: False
 failureCriteria: []
 env:
 - name: domain
-  value: loadtesting-g3wp2a.azure-api.net
+  value: <API Url>
 - name: protocol
   value: https
 - name: throughput_per_engine
