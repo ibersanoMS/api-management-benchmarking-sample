@@ -4,6 +4,22 @@ resource "random_string" "uniqueString" {
   upper   = false
 }
 
+# App insights for sample api
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "apimLoadTesting-${random_string.uniqueString.result}"
+  location            = var.location
+  resource_group_name = var.resourceGroupName
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_application_insights" "apimLoadTesting" {
+  name                = "apimLoadTesting-${random_string.uniqueString.result}"
+  resource_group_name = var.resourceGroupName
+  location            = var.location
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.law.id
+}
 
 # App Service Plan for hosting the sample api
 resource "azurerm_service_plan" "appServicePlan" {
@@ -11,7 +27,7 @@ resource "azurerm_service_plan" "appServicePlan" {
   resource_group_name = var.resourceGroupName
   location            = var.location
   os_type             = "Linux"
-  sku_name            = "B1"
+  sku_name            = "P1V3"
   tags = {
     environment = "Dev"
   }
@@ -29,7 +45,14 @@ resource "azurerm_linux_web_app" "api" {
       docker_image_name   = "kong/httpbin:latest"
       docker_registry_url = "https://index.docker.io"
     }
+    always_on = true
   }
+  
+  app_settings = {
+    APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.apimLoadTesting.instrumentation_key
+    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.apimLoadTesting.connection_string
+  }
+  
 }
 
 # API for sample api in api management
@@ -69,23 +92,6 @@ resource "azurerm_api_management_api_policy" "apiPolicy" {
       </on-error>
   </policies>
   XML
-}
-
-# App insights for sample api
-resource "azurerm_log_analytics_workspace" "law" {
-  name                = "apimLoadTesting-${random_string.uniqueString.result}"
-  location            = var.location
-  resource_group_name = var.resourceGroupName
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
-
-resource "azurerm_application_insights" "apimLoadTesting" {
-  name                = "apimLoadTesting-${random_string.uniqueString.result}"
-  resource_group_name = var.resourceGroupName
-  location            = var.location
-  application_type    = "web"
-  workspace_id        = azurerm_log_analytics_workspace.law.id
 }
 
 resource "azurerm_api_management_logger" "apiLogger" {
