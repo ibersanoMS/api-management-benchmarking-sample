@@ -49,10 +49,10 @@ resource "azurerm_linux_web_app" "api" {
   }
 
   app_settings = {
-    APPINSIGHTS_INSTRUMENTATIONKEY = azurerm_application_insights.apimLoadTesting.instrumentation_key
+    APPINSIGHTS_INSTRUMENTATIONKEY        = azurerm_application_insights.apimLoadTesting.instrumentation_key
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.apimLoadTesting.connection_string
   }
-  
+
 }
 
 # API for sample api in api management
