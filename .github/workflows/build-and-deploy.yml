@@ -2,8 +2,12 @@ name: "Deploy APIM Test Environment"
 
 on:
   workflow_dispatch:
-  # push: 
-  #   branches: [main]
+  push: 
+    branches: [main]
+    paths:
+      - 'src/infra/**'
+      - 'src/load-test-configs/**'
+
 
 env:
   TerraformWorkingDirectory: "./src/infra"
@@ -131,10 +135,6 @@ jobs:
           loadTestConfigFile: './src/load-test-configs/config-1500B.yaml'
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: loadTestResults
-          path: ${{ github.workspace }}/loadTest
 
   destroy-terraform:
     name: "Terraform Destroy"
