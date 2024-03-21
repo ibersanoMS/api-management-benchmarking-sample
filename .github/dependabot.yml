@@ -8,3 +8,7 @@ updates:
     directory: "/src/infra"
     schedule:
       interval: "daily"
+  - package-ecosystem: "terraform"
+    directory: "/src/infra/sample-apis/basic-api"
+    schedule:
+      interval: "daily"
