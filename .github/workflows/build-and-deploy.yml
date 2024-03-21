@@ -108,7 +108,7 @@ jobs:
       - name: Replace API URL
         run: |
           delimiter="//"
-          splitApiUrl"${${{ needs.deploy-infra.outputs.apiUrl }}#*$delimiter}"
+          splitApiUrl="${${{ needs.deploy-infra.outputs.apiUrl }}#*$delimiter}"
           sed -i "s|<API Url>|$splitApiUrl|g" ./src/load-test-configs/*.yaml
 
       - name: 'Run 500B test'
