@@ -131,7 +131,7 @@ jobs:
           loadTestConfigFile: './src/load-test-configs/config-1500B.yaml'
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: loadTestResults
           path: ${{ github.workspace }}/loadTest
