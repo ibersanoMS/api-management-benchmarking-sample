@@ -107,7 +107,9 @@ jobs:
 
       - name: Replace API URL
         run: |
-          sed -i "s|<API Url>|${{ needs.deploy-infra.outputs.apiUrl }}|g" ./src/load-test-configs/*.yaml
+          delimiter="//"
+          splitApiUrl"${${{ needs.deploy-infra.outputs.apiUrl }}#*$delimiter}"
+          sed -i "s|<API Url>|$splitApiUrl|g" ./src/load-test-configs/*.yaml
 
       - name: 'Run 500B test'
         uses: azure/load-testing@v1
