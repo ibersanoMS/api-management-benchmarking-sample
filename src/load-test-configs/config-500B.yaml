@@ -2,7 +2,7 @@ displayName: 500 Bytes
 testPlan: quick_test.jmx
 description: APIM 500 Bytes Baseline Test
 engineInstances: 2
-testId: <Test Id>
+testId: 500bytes
 testType: JMX
 splitAllCSVs: False
 failureCriteria: []
