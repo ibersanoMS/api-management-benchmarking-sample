@@ -24,7 +24,7 @@ The [Terraform code](/src/infra) included in this repository demonstrates basic 
 - Azure Load Test
 
 ## Load tests
-Three load tests are run the deployment workflow using a [JMeter script](/src/load-test-configs/quick_test.jmx) and [config files](/src/load-test-configs/). This is intended to demonstrate that anytime you make a change to your environment with APIM, you need to re-run basic loads tests as you would unit tests to determine if that change had any effect on your environment's performance. For the purposes of this example, we have demonstrated three basic load tests each run against 500 requests per second (RPS). 
+Three load tests are run the deployment workflow using a [JMeter script](/src/load-test-configs/quick_test.jmx) and [config files](/src/load-test-configs/). You can use any JMeter script you already have, but for the purposes of this example, the JMeter script was generated through Azure Load Test Quick Test. When we perform system testing, we need to look at functional and performance. The CI/CD implementation is intended to demonstrate that anytime you make a change to your environment with APIM, you need to re-run basic loads tests as you would unit tests to determine if that change had any effect on your environment's performance. For the purposes of this example, we have demonstrated three basic load tests each run with 500 requests per second (RPS). 
 
 1. 500 byte payload
 2. 1,000 byte payload
