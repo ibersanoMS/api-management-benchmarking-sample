@@ -187,7 +187,7 @@ jobs:
     name: "Terraform Destroy"
     runs-on: ubuntu-latest
     if: ${{ needs.deploy-infra.outputs.DestroyEnvironment == 'true' }}
-    needs: [run-load-tests, deploy-infra]
+    needs: [run-backend-load-tests, run-system-load-tests, deploy-infra]
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
