@@ -31,6 +31,7 @@ jobs:
       apimInstanceName: ${{ steps.create-resources.outputs.apimInstanceName }}
       loadTestName: ${{ steps.create-resources.outputs.loadTestName }}
       apiUrl: ${{ steps.create-resources.outputs.apiUrl }}
+      backendUrl: ${{ steps.create-resources.outputs.backendUrl }}
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
@@ -83,14 +84,16 @@ jobs:
           echo apimInstanceName=$(terraform output -raw apiManagementServiceName) >> $GITHUB_OUTPUT
           echo loadTestName=$(terraform output -raw loadTestName) >> $GITHUB_OUTPUT
           echo apiUrl=$(terraform output -raw apiUrl) >> $GITHUB_OUTPUT
+          echo backendUrl=$(terraform output -raw backendUrl) >> $GITHUB_OUTPUT
         working-directory: ${{ env.TerraformWorkingDirectory }}
         env:
              ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
              ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
              ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
              ARM_USE_OIDC: true
-  run-load-tests:
-    name: "Run Azure Load Tests"
+
+  run-backend-load-tests:
+    name: "Run Backend Azure Load Tests"
     runs-on: ubuntu-latest
     needs: [deploy-infra]
     defaults:
@@ -111,10 +114,8 @@ jobs:
 
       - name: Replace API URL
         run: |
-          delimiter="//"
-          url="${{ needs.deploy-infra.outputs.apiUrl }}"
-          splitApiUrl="${url#*$delimiter}"
-          sed -i "s|<API Url>|$splitApiUrl|g" ./src/load-test-configs/*.yaml
+          url="${{ needs.deploy-infra.outputs.backendUrl }}"
+          sed -i "s|<API Url>|$url|g" ./src/load-test-configs/*.yaml
 
       - name: 'Run 500B test'
         uses: azure/load-testing@v1
@@ -136,6 +137,52 @@ jobs:
           loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
           resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
 
+  run-system-load-tests:
+      name: "Run System Azure Load Tests"
+      runs-on: ubuntu-latest
+      needs: [deploy-infra, run-backend-load-tests]
+      defaults:
+        run:
+          shell: bash
+  
+      steps:
+        # Checkout the repository to the GitHub Actions runner
+        - name: Checkout
+          uses: actions/checkout@v4      
+  
+        - name: Azure Login
+          uses: azure/login@v2
+          with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  
+        - name: Replace API URL
+          run: |
+            delimiter="//"
+            url="${{ needs.deploy-infra.outputs.apiUrl }}"
+            splitApiUrl="${url#*$delimiter}"
+            sed -i "s|<API Url>|$splitApiUrl|g" ./src/load-test-configs/*.yaml
+  
+        - name: 'Run 500B test'
+          uses: azure/load-testing@v1
+          with:
+            loadTestConfigFile: './src/load-test-configs/config-500B.yaml'
+            loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+            resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
+  
+        - name: 'Run 1000B test'
+          uses: azure/load-testing@v1
+          with:
+            loadTestConfigFile: './src/load-test-configs/config-1000B.yaml'
+            loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+            resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
+        - name: 'Run 1500B test'
+          uses: azure/load-testing@v1
+          with:
+            loadTestConfigFile: './src/load-test-configs/config-1500B.yaml'
+            loadTestResource: ${{ needs.deploy-infra.outputs.loadTestName }}
+            resourceGroup: ${{ needs.deploy-infra.outputs.resourceGroupName }}
   destroy-terraform:
     name: "Terraform Destroy"
     runs-on: ubuntu-latest

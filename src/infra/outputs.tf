@@ -13,3 +13,7 @@ output "loadTestName" {
 output "apiUrl" {
   value = azurerm_api_management.loadTesting.gateway_url
 }
+
+output "backendUrl" {
+  value = module.api.backendUrl
+}
