@@ -116,6 +116,7 @@ jobs:
         run: |
           url="${{ needs.deploy-infra.outputs.backendUrl }}"
           sed -i "s|<API Url>|$url|g" ./src/load-test-configs/*.yaml
+          sed -i "s|<Sub-System>|backend|g" ./src/load-test-configs/*.yaml
 
       - name: 'Run 500B test'
         uses: azure/load-testing@v1
@@ -163,6 +164,7 @@ jobs:
             url="${{ needs.deploy-infra.outputs.apiUrl }}"
             splitApiUrl="${url#*$delimiter}"
             sed -i "s|<API Url>|$splitApiUrl|g" ./src/load-test-configs/*.yaml
+            sed -i "s|<Sub-System>|system|g" ./src/load-test-configs/*.yaml
   
         - name: 'Run 500B test'
           uses: azure/load-testing@v1
