@@ -8,7 +8,7 @@ Incorporating benchmark testing of your API Management resources into your softw
 - It identifies performance regressions: It helps pinpoint changes or integration points that may be causing performance degradation or hindering scalability— in effect helping you to identify which components need to be scaled or configured to maintain performance.  This allows developers and operational staff to make targeted improvements to enhance the performance of your API's.
 - It validates performance requirements: By comparing the observed metrics against the specified requirements, you can be assured that the architecture meets the desired operating performance targets.  This can also help you determine a strategy for implementing [throttling](https://learn.microsoft.com/en-us/azure/architecture/patterns/throttling) or a [circuit breaker pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker).
 - It improves user experience: By identifying and resolving performance issues early in the development life cycle— before your changes make it into production.
-- And perhaps most importantly, it gives you the data you need to derive the capacity model you'll need to operate your API's efficiently accross the entire range of design loads.
+- And perhaps most importantly, it gives you the data you need to derive the capacity model you'll need to operate your API's efficiently across the entire range of design loads.
 
 ### Benchmark vs Load Testing. What's the difference?
 
@@ -102,7 +102,7 @@ Let's look at how we'll apply our model approach in the example:
     Hit Run Test.
 
     Once the test completes, you should see results like below:
-    ![test results](./assets/9-test-results.png)
+    ![test results](./assets/9-results.png)
 
 
 10. Create a new quick test with the following large-sized payload configuration:
