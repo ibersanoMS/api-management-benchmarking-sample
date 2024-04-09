@@ -1,61 +1,70 @@
-## Introduction
+# Introduction
 
 Benchmark performance testing involves measuring the performance characteristics of an application or system under normal or expected conditions. It's a [recommended practice](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/get-started/performance) in any case, but it's a critical consideration for your APIs since your consumers will depend on consistent performance for their client applications.
 
 Incorporating benchmark testing of your API Management resources into your software delivery process provides several important benefits:
 
-- It establishes performance baseline: It sets a quantifiable baseline against which future results can be compared to detect any performance regressions or improvements.
-- It identifies performance regressions: It helps pinpoint changes or integration points that may be causing performance degradation or hindering scalability— in effect helping you to identify which components need to be scaled or configured to maintain performance.  This allows developers and operational staff to make targeted improvements to enhance the performance of your API's.
-- It validates performance requirements: By comparing the observed metrics against the specified requirements, you can be assured that the architecture meets the desired operating performance targets.  This can also help you determine a strategy for implementing [throttling](https://learn.microsoft.com/en-us/azure/architecture/patterns/throttling) or a [circuit breaker pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker).
-- It improves user experience: By identifying and resolving performance issues early in the development life cycle— before your changes make it into production.
-- And perhaps most importantly, it gives you the data you need to derive the capacity model you'll need to operate your API's efficiently across the entire range of design loads.
+- **It establishes performance baseline:** It sets a quantifiable baseline against which future results can be compared to detect any performance regressions or improvements.
+- **It identifies performance regressions:** It helps pinpoint changes or integration points that may be causing performance degradation or hindering scalability— in effect helping you to identify which components need to be scaled or configured to maintain performance.  This allows developers and operational staff to make targeted improvements to enhance the performance of your API's.
+- **It validates performance requirements:** By comparing the observed metrics against the specified requirements, you can be assured that the architecture meets the desired operating performance targets.  This can also help you determine a strategy for implementing [throttling](https://learn.microsoft.com/en-us/azure/architecture/patterns/throttling) or a [circuit breaker pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker).
+- **It improves consumer experience:** By identifying and resolving performance issues early in the development life cycle— before your changes make it into production.  From there it will help you ensure that you don't introduce changes that degrade the experience.
+- ***And perhaps most importantly***, it gives you the data you need to ***create the capacity model*** you'll need to operate your API's efficiently across the entire range of design loads.  This is a topic we'll have to defer to a future post, but the methods described here are a prerequisite.
 
 ### Benchmark vs Load Testing. What's the difference?
 
 While the approaches and tools involved are nominally very similar, the reasons for doing them differ. Benchmark testing establishes a performance baseline within the normal operational range of conditions, while load testing established the upper boundary or point of failure. Benchmark testing establishes sets a reference point for future iterations, while load testing validates scalability and stress handling. Both are important for ensuring API performance, and you can combine the approaches to suit your needs as long as the goals of each are met.
 
-For this post, we're going to focus on the basics of designing a repeatable benchmark test, with a full walkthrough and all the resources you'll need to do it yourself at the end.
+For this post, we're going to focus on **the basics of designing a repeatable benchmark test**, with a full walkthrough and all the resources you'll need to do it yourself at the end.
 
 ## Model Approach
+[Benchmarking](https://en.wikipedia.org/wiki/Benchmark_(computing)) is something that you 
+Before we get into a specific example, let's look at the conceptual steps involved.  
 
-Before we get into specifics, let's look at the general steps that go into designing your benchmark performance testing strategy.
+Broadly, there are two stages:
+- **Design and Planning**: Decide what to measure, and how to measure it. (Steps 1-4 below)
+- **Execute the plan**: Run test, collect results, and use the results to inform future actions or decisions.  (Steps 5-7)
 
-### 1. Identify your performance metric(s).
-Determine the key performance metrics to measure, such as requests per second (RPS), response time, throughput, CPU or memory utilization, network latency, and database performance. The metrics should align with your requirements and objectives. For API Management, and APIs in general, the easiest and most useful metric is usually response time.  For that reason, start with reponse time as the default choice if your circumstances don't guide you to choose something else.
+The execution stage is repetitive.  The first execution result becomes the baseline.  From there, the benchmark test can be repeated after any important change to your API workload (configuration, application code, *etc.*).  Comparing the results of the current and previous test will indicate whether the most recent change moved you closer to your goal, or caused a regression.  Once the goal is met, you'll continue the practice with future changes to ensure that the performance goal is being maintained.
 
-The key here is to choose metrics that you can capture easily and consistently, and that will allow you to make linear comparisons over time. It's possible to devise your own composite metrics based on an aggregation formula using multiple primitives, if required, in order to derive measures that work best for you.
+### 1. Identify your benchmark metric.
+Determine the key performance metric that will define your benchmark.  Think of it as the [key performance indicator (KPI)](https://en.wikipedia.org/wiki/Performance_indicator) of your API workload.  Some examples include: operation or request duration, failure rate, resource utilization (*eg,* memory usage), data transfer speed, and database transaction time. The metric should align with your requirements and objectives, and be a good indicator for the quality of the consumer experience. For API Management, and APIs in general, the easiest and most useful metric is usually response time.  For that reason, start with reponse time as the default choice if your circumstances don't guide you to choose something else.
 
-> **Tip:** *Although misguided, RPS is often considered to be the primary metric for API benchmarking.  This might be because similar metrics have been used historically to benchmark everything from web servers to GPUs.  In reality, RPS isn't very useful for <u>benchmarking</u> APIs since API consumers will mostly be concerned with how long it takes your API to respond to their client requests.*  
+The key here is to choose a single metric that you can capture easily and consistently, and that will allow you to make linear comparisons over time. It's possible to devise your own composite metric based on an aggregation formula using multiple primitives, if required, in order to derive a single benchmark measurement that works best for you.
 
-### 2. Define your [benchmark](https://en.wikipedia.org/wiki/Benchmark_(computing)) scenario.
-It should be realistic and represent typical usage patterns and workload conditions. The scenario should reflect the expected behavior of the system in terms of user interactions, data payloads, etc.
+> **Tip:** *Requests per second (RPS) might be the first metric you think of when you are trying to decide what you should measure.  Similar unit-per-second metrics have been used historically for benchmark everything from web servers to GPUs.  But in reality, RPS by itself isn't very useful as a benchmark for APIs. It's not uncommon to observe a system achieve a "high" RPS while individual consumers are simultaneously experiencing "slow" response times. For this reason, we recommend that you only use RPS as a scenario parameter and choose something else as your benchmark metric.*  
 
-> **Tip:** *Choose an API operation that meets the criteria and is frequently used by your API consumers. Also, make sure that the performance of the scenario is relatively deterministic, meaning that the benchmark measurement would be relatively consistent across repeated measurements using the same code and identical configuration, and not skewed by external or transient conditions.*
+### 2. Define the benchmark scenario.
+The scenario describes input parameters and the simulation.  In other words, it describes what is happening in the system while the benchmark metric is being measured. For example, *"1000 simulated users, calling the Product Search API, at a rate of 10 searches per minute per user"*.  The scenario should be as simple as possible while also providing a realistic representation of typical usage and conditions. It should accurately reflect the behavior of the system in terms of user interactions, data payloads, etc.  For example, if your API relies on caching to boost performance, don't use a scenario that results in an unrealistically high cache hit rate.
+
+> **Tip:** *For an existing application, choose an API operation that represents an important use case and is frequently used by your API consumers. Also, make sure that the performance of the scenario is relatively deterministic— meaning that the you expect the test results to be relatively consistent across repeated runs using the same code and configuration, and isn't likely to be skewed by external or transient conditions.  For example, if your API relies on a shared resource (like a database), make sure the external load on that resource isn't interfering with your benchmark.  When it doubt, use multiple test runs and compare the results.*
 
 ### 3. Define the test environment. 
-Whatever method you choose to run the test, just make sure the process is *repeatable*.
+The test environment includes the tool that will run the simulation ([Jmeter](https://jmeter.apache.org/), for example), along with all the resources your API requires.  Generally speaking, you should use a dedicated environment that models your production environment as closely as possible, including compute, storage, networking, and downstream dependencies.  If you have to use mocks for any of your dependencies, make sure that they are accurately simulating the real dependency (latency, authorization, data transfer, etc).  
 
-> **Tip:** *You want your testing environment to satisfy two important things: First, it should be easy. You don't want to deter yourself from following the process by making it tedious or time-consuming. Second, it needs to be consistent across test runs to ensure the results can be compared reliably.*
+> **Tip:** *You want your testing environment to satisfy two conditions:*
+  > - *It makes it easy to set up and execute the test. You don't want to deter yourself from running tests because the process is tedious or time-consuming.*
+  > - *It is consistent and repeatable across test runs to ensure the observed results can be compared reliably.*
+  >
+  >*Automation helps you achieve both of these things.*
 
 ### 4. Determine how you will record your chosen metric. 
-You may need to instrument your code or API Management service with performance monitoring tools or profiling agents (*for example,* [Azure Application Insights](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights)).  
+You may need to instrument your code or API Management service with performance monitoring tools or profiling agents (*for example,* [Azure Application Insights](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights)).  You may also need to consider how you will retrieve and store the results for future analysis.
 
-Again, *repeatability is the key.*
-
-> **Tip:** *Be aware that adding observability and instrumentation can, by itself, adversely impact your performance metric, so the ideal case (if the observability tooling isn't already part of your production-ready design) would be a data collection method would be to capture the metric on the client side in your test environment.*  
+> **Tip:** *Be aware that adding observability and instrumentation can, by itself, adversely impact your performance metric, so the ideal case (if the observability tooling isn't already part of your production-ready design) would be a data collection method that captures the data at the client (or agent, in the case of Azure Load Testing).*  
 
 ### 5. Execute the test scenario.
 Run the defined test scenario against the API while measuring the performance metric.
 
 ### 6. Analyze the results.
-Analyze the collected performance data to assess how your API performs. If this isn't your first time running the test, compare the observed performance against the established benchmark to determine if the API continues to meet the desired performance objectives and what the impact (if any) of your code or configuration changes may be.
+Analyze the collected performance data to assess how your API performs. If this isn't your first time running the test, compare the observed performance against previous executions to determine if the API continues to meet the desired performance objectives and what the impact (if any) of your code or configuration changes may be.
 
-*For Example:* You just added a policy change that decrypts part of the request payload and transforms it into a different format for your backend to consume. You notice that the RPS metric has dropped from 1100/s to 750/s. Your benchmark objective RPS is 800. Do you revert the change? Do you scale your API management service to compensate? Do you try to optimize your recent changes to see if you can get the results to improve? The bottom line here is that you can use the data to make an informed business decision.
+**For Example:** You just added a policy change that decrypts part of the request payload and transforms it into a different format for your backend to consume. You notice that the RPS metric has dropped from 1100/s to 750/s. Your benchmark objective RPS is 800. Do you revert the change? Do you scale your API management service to compensate? Do you try to optimize your recent changes to see if you can get the results to improve? The bottom line here is that you can use the data to make an informed business decision.
 
 ### 6. Report and document.
 Document the test results, including performance metrics, observations, and any identified issues or recommended actions. This information serves as a reference for future performance testing iterations and as a new benchmark for future comparison.
+
 ### 7. Iterate and refine. 
-Finally, find ways to automate or optimize the process or modify your strategy as necessary to improve its usefulness to your business operations and decision making.  We'll talk more about how to operationalize benchmark testing as part of your capacity management practices in a future post.
+Finally, find ways to automate or optimize the process or modify your strategy as necessary to improve its usefulness to your business operations and decision making.  In a future article, we'll talk more about how to operationalize benchmark testing and how to use it as a powerful capacity management tool.
 
 ## Walkthrough
 
