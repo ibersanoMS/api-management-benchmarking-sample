@@ -62,7 +62,6 @@ Create the following secrets in your GitHub repository:
 - ``` STATE_STORE_FILENAME ``` Existing filename or new filename for your Terraform state file
 - ``` DESTROY_TERRAFORM ``` True or False. Whether you want to destroy the Terraform architecture after it's been created through the workflow. 
 - ``` LOCATION ``` Location where you want the Azure resources and Terraform state storage to be deployed.   
-- 
 
 ## Development Process
 
