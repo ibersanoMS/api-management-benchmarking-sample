@@ -1,4 +1,4 @@
-# Introduction
+## Introduction
 
 Benchmark performance testing involves measuring the performance characteristics of an application or system under normal or expected conditions. It's a [recommended practice](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/get-started/performance) in any case, but it's a critical consideration for your APIs since your consumers will depend on consistent performance for their client applications.
 
@@ -169,7 +169,6 @@ In our first benchmark, we are establishing a performance baseline of the backen
 |444|21|
 |431|14|
 |447|15|
-
 
 Next, we run the same test using the API Management endpoint.  Requests are now being proxied through API Management to the backend application.  This will help us measure any latency to change in performance added by API Management.  As we can see, the results are similar:
 
