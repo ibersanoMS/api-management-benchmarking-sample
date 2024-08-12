@@ -72,13 +72,13 @@ Run the defined test scenario against the API while measuring the performance me
 
 Analyze the collected performance data to assess how your API performs. If this isn't your first time running the test, compare the observed performance against previous executions to determine if the API continues to meet the desired performance objectives and what the impact (if any) of your code or configuration changes may be.  There are statistical methods that can applied to aid this analysis, which are extremely useful in automated tests or pull request reviews.  These methods are beyond the scope of this post, but it's a good idea to familiarize yourself with some of the [approaches](https://www.statisticshowto.com/effect-size/).
 
-**For Example:** You just added a policy change that decrypts part of the request payload and transforms it into a different format for your backend to consume. You notice that the RPS metric has dropped from 1100/s to 750/s. Your benchmark objective RPS is 800. Do you revert the change? Do you scale your API management service to compensate? Do you try to optimize your recent changes to see if you can get the results to improve? The bottom line here is that you can use the data to make an informed decision.
+**For Example:** You just added a policy change that decrypts part of the request payload and transforms it into a different format for your backend to consume. You noticed that the time for the operation to complete has increased from 70ms to 110ms. Your benchmark objective is 80ms.  Do you revert the change? Do you scale your API management service to compensate? Do you try to optimize your recent changes to see if you can get the results to improve? The bottom line here is that you can use the data to make an informed decision.
 
-### 6. Report and document
+### 7. Report and document
 
 Document the test results, including performance metrics, observations, and any identified issues or recommended actions. This information serves as a reference for future performance testing iterations and as a new benchmark for future comparison.
 
-### 7. Iterate and refine
+### 8. Iterate and refine
 
 Finally, find ways to automate or optimize the process or modify your strategy as necessary to improve its usefulness to your business operations and decision making.  In a future article, we'll talk more about how to operationalize benchmark testing and how to use it as a powerful capacity management tool.
 
