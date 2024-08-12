@@ -29,7 +29,7 @@ Before we get into a specific example, let's look at the conceptual steps involv
 Broadly, there are two stages:
 
 - **Design and Planning**: Decide what to measure, and how to measure it. (Steps 1-4 below)
-- **Execution**: Run test, collect results, and use the results to inform future actions or decisions.  (Steps 5-7)
+- **Execution**: Run test, collect results, and use the results to inform future actions or decisions.  (Steps 5-8)
 
 The execution stage is repetitive.  The first execution result becomes the baseline.  From there, the benchmark test can be repeated after any important change to your API workload (resource configuration, backend application code, *etc.*).  Comparing the results of the current and previous test will indicate whether the most recent change moved you closer to your goal, or caused a regression.  Once the goal is met, you'll continue the practice with future changes to ensure that the required performance is being maintained.
 
