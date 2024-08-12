@@ -1,6 +1,6 @@
 # Getting Started with Azure API Management Benchmarking with Azure Load Testing and JMeter
 
-Use this repository to create an environment to perform basic benchmark testing on an API Management instance either using GitHub workflows or manually deploying the Terraform setup. If you choose to manually deploy the Terraform code, you will need to go into the Portal and follow the instructions in the [related blog post](https://techcommunity.microsoft.com/t5/apps-on-azure-blog/benchmark-testing-puts-you-on-the-path-to-peak-api-performance/ba-p/4216776) to run your load tests.
+Use this repository to create an environment to perform basic benchmark testing on an API Management instance either using GitHub workflows or manually deploying the Terraform setup. If utilizing the GitHub workflows, create your own repository using this repository as the template and follow the setup instructions. If you choose to manually deploy the Terraform code, you will need to go into the Portal and follow the instructions in the [related blog post](https://techcommunity.microsoft.com/t5/apps-on-azure-blog/benchmark-testing-puts-you-on-the-path-to-peak-api-performance/ba-p/4216776) to run your load tests.
 
 This repo has basic workflows in the ```.github/``` folder and Terraform deployment files in the ``` src/infra ``` folder.
 
