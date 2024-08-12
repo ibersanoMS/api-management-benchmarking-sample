@@ -130,38 +130,31 @@ terraform apply tfplan
 
 The Terraform templates will configure the load tests for you, but if you want to create tests on your own without automation the steps below will walk you through it.
 
-1. Go to the Azure Portal and retrieve your backend URL. Save the value somewhere because you will need it for the next steps. If you're using the sample environment provided, it will be your App Service Hostname URL.
-2. Search for Azure Load Testing in the Azure Portal
-3. Hit Create in the upper left corner
-4. Navigate to Tests
-5. Click Create on the upper middle of the window and then Create a URL-based test
+1. Identify the host url of your App Service backend and your API Management service.  If you're using the sample environment created from the Terraform template, these will be the "backendUrl" and "apiUrl" respectively.
+2. Search for Azure Load Testing in the Azure Portal.
+3. Click **Create** on the resource provider menu bar.
+4. Once the Load Testing resource is created, navigate to **Tests**.
+5. Click **Create** on grid menu bar and then choose **Create a URL-based test**.
 
     ![create test](./assets/5-create-test.png)
 
-6. Configure the test with the following parameters for your first case (500B payload)
+6. Configure the test with the following parameters for your first case (500B payload).
+
+    Enter the App Service backend as the host portion of the **Test Url**.  It should be in the form of: `https://{your App Service hostname}/bytes/500`.
 
     ![configure test](./assets/6-configure-test.png)
 
-7. Hit Run test
+7. Click **Run Test**
 
     Once the test completes, you should see results like below:
 
     ![test results](./assets/7-results.png)
 
-8. Now that we have our baseline test, let's create a test for our medium and large sized payload conditions.
+8. Now that we have a baseline result for the backend, create and run another identical test, but this time use the API Management API Url as the **Test Url** (`https://{your API Management service hostname}/bytes/500`)
 
-    ![create a new test](./assets/8-create-medium-test.png)
+9. Finally, we'll simulate an updated version of the API by increasing the response payload size.  Our API now returns more data than the previous version, so we'll be able to measure the impact of that change.
 
-9. Create a new quick test with the following medium-sized payload configuration:
-
-    Hit Run Test.
-
-    Once the test completes, you should see results like below:
-
-    ![test results](./assets/9-results.png)
-
-10. Create a new quick test with the following large-sized payload configuration:
-it Run Test.
+    Configure and run a new test.  We're still using the API Management host url, with a url path that returns 1500 bytes instead of 500 bytes: (`https://{your API Management service hostname}/bytes/1500`).
 
     ![create a large test](./assets/10-large-test.png)
 
@@ -169,9 +162,9 @@ it Run Test.
 
     ![test results](./assets/10-results.png)
 
-### Sample Results
+### Looking at the Results
 
-In our first benchmark, we are establishing a performance baseline of the backend application which returns a 500 byte payload.  In this first step, the backend is tested in isolation (meaning the load test client is sending requests directly to the backend API end point, without API Management) so that we can measure how it performs on its own.  Below are the results of three separate test runs:
+In our first benchmark, we are establishing a performance baseline of the backend application which returns a 500 byte payload.  We tested the backend in isolation (meaning the load test client is sending requests directly to the backend API end point, without API Management) so that we can measure how it performs on its own.  This isn't always necessary, or even practical, but it can provide really useful insights. Below are the results of three different runs of the first test:
 
 |Throughput (RPS)|Average Response Time (ms)|
 |---|---|
@@ -179,7 +172,7 @@ In our first benchmark, we are establishing a performance baseline of the backen
 |431|14|
 |447|15|
 
-Next, we run the same test using the API Management endpoint.  Requests are now being proxied through API Management to the backend application.  This will help us measure any latency to change in performance added by API Management.  As we can see, the results are similar:
+Next, we ran the same benchmark test using the API Management endpoint so requests were being proxied through API Management to the backend application.  This scenario is an "end-to-end" or "system" test that is representative of how our API would be deployed in production.  The results help us measure any latency or change in performance added by API Management and the Azure network.  As we can see, the results are similar.  This indicates that the net effect of API Management on the system performance at this design load is zero or very close to zero.
 
 |Throughput (RPS)|Average Response Time (ms)|
 |---|---|
@@ -187,13 +180,15 @@ Next, we run the same test using the API Management endpoint.  Requests are now 
 |441|14|
 |436|10|
 
-Finally, we run a benchmark on a new "release" of our backend application.  The new version of the API now returns a larger 1,500 byte payload.  We can from the results that response times have increased significantly, and (assuming these results don't meet our performance objectives) we now know that remediation steps will need to be taken before the new release of our API can be deployed to production.
+Finally, we ran a benchmark on a new "release" of our backend application.  The new version of the API now returns a larger 1,500 byte payload, and we can see from the results that response times have increased significantly.
 
 |Throughput (RPS)|Average Response Time (ms)|
 |---|---|
 |361|600|
 |370|518|
 |367|585|
+
+Assuming these results don't meet our performance objectives, we now know that remediation steps will need to be taken before the new release of our API can be deployed to production.  For example, we might consider adding [output caching](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-cache), or scaling the App Service or API Management service, or optimizing the payload returned from the application code.  In any case, we now have the tools to test any remediation approaches (using the same structured, quantitative approach above) to ensure that the new API version meets its performance objective before it's released.
 
 ## Helpful Resources
 
