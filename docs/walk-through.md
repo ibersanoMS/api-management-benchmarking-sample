@@ -1,14 +1,20 @@
+# Benchmark Testing puts you on the path to peak API Performance
+
+This guide explains the best practices you need to know with a full sample to get you started.
+
+![hero image](./assets/hero-image.png)
+
 ## Introduction
 
 Benchmark performance testing involves measuring the performance characteristics of an application or system under normal or expected conditions. It's a [recommended practice](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/get-started/performance) in any case, but it's a critical consideration for your APIs since your consumers will depend on consistent performance for their client applications.
 
-Incorporating benchmark testing of your API Management services into your software delivery process provides several important benefits:
+Incorporating benchmark testing of your Microsoft Azure API Management services into your software delivery process provides several important benefits:
 
 - **It establishes performance baseline** as a known, quantifiable starting point against which future results can be compared.
-- **It identifies performance regressions** so that you can pinpoint changes or integrations that may be causing performance degradation or hindering scalability— in effect helping you to identify which components might need to be scaled or configured to maintain performance.  This allows developers and operational staff to make targeted improvements to enhance the performance of your API's.
+- **It identifies performance regressions** so that you can pinpoint changes or integrations that may be causing performance degradation or hindering scalability — in effect helping you to identify which components might need to be scaled or configured to maintain performance.  This allows developers and operational staff to make targeted improvements to enhance the performance of your APIs and avoid accumulating performance-hindering technical debt.
 - **It validates performance requirements** so you can be assured that the architecture meets the desired operating performance targets.  This can also help you determine a strategy for implementing [throttling](https://learn.microsoft.com/en-us/azure/architecture/patterns/throttling) or a [circuit breaker pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker).
 - **It improves user experience** by identifying and resolving performance issues early in the development life cycle— before your changes make it into production.
-- *And perhaps most importantly*, it gives you the data you need to **create the capacity model** you'll need to operate your API's efficiently across the entire range of design loads.  This is a topic for a future post, but the methods described here are a a great starting point.
+- *And perhaps most importantly*, it gives you the data you need to **create the capacity model** you'll need to operate your APIs efficiently across the entire range of design loads.  This is a topic for a future post, but the methods described here are a a great starting point.
 
 ### Benchmark vs Load Testing. What's the difference?
 
@@ -18,8 +24,7 @@ For this post, we're going to focus on **the basics of designing a repeatable be
 
 ## Model Approach
 
-[Benchmarking](https://en.wikipedia.org/wiki/Benchmark_(computing)) is something that you 
-Before we get into a specific example, let's look at the conceptual steps involved.  
+Before we get into a specific example, let's look at the conceptual steps involved.
 
 Broadly, there are two stages:
 
@@ -42,9 +47,9 @@ The scenario describes input parameters and the simulation.  In other words, it 
 
 > **Tip:** *For an existing application, choose an API operation that represents an important use case and is frequently used by your API consumers. Also, make sure that the performance of the scenario is relatively deterministic— meaning that the you expect the test results to be relatively consistent across repeated runs using the same code and configuration, and isn't likely to be skewed by external or transient conditions.  For example, if your API relies on a shared resource (like a database), make sure the external load on that resource isn't interfering with your benchmark.  When it doubt, use multiple test runs and compare the results.*
 
-### 3. Define the test environment.
+### 3. Define the test environment
 
-The test environment includes the tool that will run the simulation ([Jmeter](https://jmeter.apache.org/), for example), along with all the resources your API requires.  Generally speaking, you should use a dedicated environment that models your production environment as closely as possible, including compute, storage, networking, and downstream dependencies.  If you have to use mocks for any of your dependencies, make sure that they are accurately simulating the real dependency (network latency, long running processes, data transfer, etc).  
+The test environment includes the tool that will run the simulation ([JMeter](https://jmeter.apache.org/), for example), along with all the resources your API requires.  Generally speaking, you should use a dedicated environment that models your production environment as closely as possible, including compute, storage, networking, and downstream dependencies.  If you have to use mocks for any of your dependencies, make sure that they are accurately simulating the real dependency (network latency, long running processes, data transfer, etc).  
 
 > **Tip:** *You want your testing environment to satisfy two conditions:*
   >
@@ -79,7 +84,7 @@ Finally, find ways to automate or optimize the process or modify your strategy a
 
 ## Walkthrough
 
-Let's make this more realistic with a basic example. For the purposes of this walkthrough, we've developed an automated environment setup using Terraform. The environment includes an API Management service, a basic backend ([httpbin](https://github.com/postmanlabs/httpbin), hosted in an App Service plan), and an Azure Load Testing resource.
+Let's make this more realistic with a basic example. For the purposes of this walkthrough, we've developed an automated environment setup using Terraform. The environment includes an API Management service, a basic backend ([httpbin](https://github.com/postmanlabs/httpbin), hosted in an Azure App Service plan), and an Azure Load Testing resource.
 
 > **Tip:** *Use the Terraform templates provided in the repo to deploy all the resources you'll need to follow along.  For operational use, we recommend that you create your own repository using our repo as a template, and then follow the instructions in the README to configure the GitHub workflows for deployment to your Azure subscription. Once configured, The workflow will deploy the infrastructure and then run the load tests for you automatically.*
 
@@ -90,7 +95,7 @@ Let's look at how we'll apply our model approach in the example:
 |--|--|
 |**Performance metric** |Average response time|
 |**Benchmark scenario** | Performance will be measured under a consistent request rate of 500 requests per second. |
-|**Environment**|The sample environment an App Service with our backend and an API Management Servcie with one scale unit. Both are located in the same region, along with the Azure Load Test resource. The deployment assets for all resources are included. |
+|**Environment**|The sample environment - an App Service Web App that hosts the backend API and an API Management Service configured with one scale unit. Both are located in the same region, along with the Azure Load Testing resource. The deployment assets for all resources are included. |
 
 ### Deploy the Azure resources
 
@@ -99,8 +104,8 @@ Let's look at how we'll apply our model approach in the example:
 2. Clone the Repository
 
 ```bash
-git clone https://github.com/ibersanoMS/APIM-Load-Testing.git
-cd APIM-Load-Testing/src/infra
+git clone https://github.com/ibersanoMS/api-management-benchmarking-sample.git
+cd api-management-benchmarking-sample/src/infra
 ```
 
 3. Initialize Terraform
@@ -132,24 +137,28 @@ The Terraform templates will configure the load tests for you, but if you want t
 5. Click Create on the upper middle of the window and then Create a URL-based test
 
     ![create test](./assets/5-create-test.png)
+
 6. Configure the test with the following parameters for your first case (500B payload)
 
     ![configure test](./assets/6-configure-test.png)
+
 7. Hit Run test
 
     Once the test completes, you should see results like below:
 
     ![test results](./assets/7-results.png)
+
 8. Now that we have our baseline test, let's create a test for our medium and large sized payload conditions.
 
     ![create a new test](./assets/8-create-medium-test.png)
+
 9. Create a new quick test with the following medium-sized payload configuration:
 
     Hit Run Test.
 
     Once the test completes, you should see results like below:
-    ![test results](./assets/9-results.png)
 
+    ![test results](./assets/9-results.png)
 
 10. Create a new quick test with the following large-sized payload configuration:
 it Run Test.
