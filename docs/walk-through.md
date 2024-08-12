@@ -126,9 +126,9 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-### Test Configuration
+### Creating and running Tests
 
-The Terraform templates will configure the load tests for you, but if you want to create tests on your own without automation the steps below will walk you through it.
+> **Note:** *The Terraform templates will configure the load tests for you, but if you want to create tests on your own without automation the steps below will walk you through it.*
 
 1. Identify the host url of your App Service backend and your API Management service.  If you're using the sample environment created from the Terraform template, these will be the "backendUrl" and "apiUrl" respectively.
 2. Search for Azure Load Testing in the Azure Portal.
