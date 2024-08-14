@@ -5,13 +5,12 @@ on:
 
 env:
   TerraformWorkingDirectory: "./src/infra"
-  StateStoreRGName: ${{ secrets.STATE_STORE_RGNAME }}
-  StorageAccountName: ${{ secrets.STORAGE_ACCOUNT_NAME }}
-  StateStoreContainerName: ${{ secrets.STATE_STORAGE_CONTAINER_NAME }}
-  StateStoreFilename: ${{ secrets.STATE_STORE_FILENAME }}
+  StateStoreRGName: ${{ vars.STATE_STORE_RGNAME }}
+  StorageAccountName: ${{ vars.STORAGE_ACCOUNT_NAME }}
+  StateStoreContainerName: ${{ vars.STATE_STORAGE_CONTAINER_NAME }}
+  StateStoreFilename: 'apim-load-testing.tfstate'
   DestroyTerraform: ${{ vars.DESTROY_TERRAFORM }}
-  Location: ${{ vars.LOCATION}}
-
+  
 permissions:
       id-token: write
       contents: read
