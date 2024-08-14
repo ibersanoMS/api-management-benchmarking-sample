@@ -38,10 +38,20 @@ jobs:
       - name: Terraform Init
         run: terraform init -backend-config=resource_group_name=${{ env.StateStoreRGName}} -backend-config=storage_account_name=${{ env.StorageAccountName }} -backend-config=container_name=${{ env.StateStoreContainerName }} -backend-config=key=${{ env.StateStoreFilename }}
         working-directory: ${{ env.TerraformWorkingDirectory }}
+        env:
+             ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+             ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+             ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+             ARM_USE_OIDC: true
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -input=false -parallelism=20 -var-file="variables.tfvars" -var "publisherEmail=${{ secrets.PUBLISHER_EMAIL }}"
         working-directory: ${{ env.TerraformWorkingDirectory }}
+        env:
+             ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+             ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID  }}
+             ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+             ARM_USE_OIDC: true
 
       - name: Azure Login
         uses: azure/login@v2
